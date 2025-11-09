@@ -1,0 +1,22 @@
+[package]
+name = "shuttle-piping"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
+futures = "0.3"
+bytes = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+async-stream = "0.3"
+serde_json = "1.0.134"
+hyper = "0.14"
+shuttle-axum = "0.57"
+shuttle-runtime = "0.57"
+futures-util = "0.3"
+http-body-util = "0.1"
+
+[dev-dependencies]
