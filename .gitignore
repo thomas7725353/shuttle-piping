@@ -1,0 +1,11 @@
+/target
+/dist
+Cargo.lock
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.log
+web/node_modules/

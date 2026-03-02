@@ -1,0 +1,19 @@
+[Unit]
+Description=Axum Piping Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/axum-piping
+Environment=HOST=0.0.0.0
+Environment=PORT=8080
+ExecStart=/opt/axum-piping/axum-piping
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
