@@ -177,6 +177,23 @@ function triggerDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+async function copyTextToClipboard(value: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+}
+
 async function buildUploadPayload(files: File[]): Promise<UploadPayload> {
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
@@ -256,6 +273,7 @@ function App() {
   const [receiveError, setReceiveError] = useState("");
   const [isReceiving, setIsReceiving] = useState(false);
   const [receiveMessage, setReceiveMessage] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
 
   const totalSize = useMemo(
     () => files.reduce((sum, file) => sum + file.size, 0),
@@ -271,6 +289,7 @@ function App() {
     setSecondsLeft(0);
     setSendError("");
     setSendMessage("");
+    setCopyMessage("");
     setIsSending(false);
   };
 
@@ -344,6 +363,7 @@ function App() {
       const createdSession = await createSession(mode, metadata);
       setSession(createdSession);
       setSessionStatus(createdSession.status);
+      setCopyMessage("");
 
       const uploadResponse = await fetch(`/${createdSession.key}`, {
         method: "PUT",
@@ -426,12 +446,25 @@ function App() {
   }, [startReceive]);
 
   const showWaiting = session !== null;
+  const currentLink = session?.link_url ?? "";
+
+  const copyLink = async () => {
+    if (!currentLink) {
+      return;
+    }
+    try {
+      await copyTextToClipboard(currentLink);
+      setCopyMessage("Link copied");
+    } catch {
+      setCopyMessage("Copy failed");
+    }
+  };
 
   return (
     <div className="page-bg">
       <div className="page-shell">
         {!showWaiting && (
-          <section className="card send-card" onClick={files.length === 0 ? openPicker : undefined}>
+          <section className="card send-card">
             <h2>Send</h2>
             {files.length === 0 ? (
               <div className="plus-wrap">
@@ -522,6 +555,14 @@ function App() {
               <QRCodeSVG value={session.qr_payload} size={172} />
             </div>
 
+            <div className="link-box">
+              <input type="text" readOnly value={currentLink} />
+              <button type="button" onClick={() => void copyLink()}>
+                Copy Link
+              </button>
+            </div>
+            {copyMessage && <p className="status-line">{copyMessage}</p>}
+
             <p className="status-line">Status: {sessionStatus || session.status}</p>
             {sendError && <p className="err">{sendError}</p>}
             {sendMessage && <p className="ok">{sendMessage}</p>}
@@ -536,13 +577,15 @@ function App() {
               inputMode="numeric"
               maxLength={6}
               value={receiveKey}
+              disabled={isReceiving}
               onChange={(event) => setReceiveKey(event.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="Input key"
             />
             <button type="button" onClick={() => void startReceive()} disabled={isReceiving}>
-              {isReceiving ? "..." : "⇩"}
+              {isReceiving ? <span className="spinner" aria-label="Downloading" /> : "⇩"}
             </button>
           </div>
+          {isReceiving && <p className="status-line">Downloading...</p>}
           {receiveError && <p className="err">{receiveError}</p>}
           {receiveMessage && <p className="ok">{receiveMessage}</p>}
         </section>

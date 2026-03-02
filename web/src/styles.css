@@ -235,6 +235,33 @@ p {
   padding: 6px 0;
 }
 
+.link-box {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.link-box input {
+  border: none;
+  border-radius: 6px;
+  background: #e6e6e6;
+  padding: 14px 12px;
+  color: #333333;
+  font-size: 18px;
+  font-weight: 560;
+}
+
+.link-box button {
+  border: none;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #232323;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
 .status-line {
   text-align: center;
   text-transform: capitalize;
@@ -269,6 +296,16 @@ p {
   font-size: 30px;
   cursor: pointer;
   color: #737373;
+}
+
+.spinner {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #c7c7c7;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 .err,
@@ -319,5 +356,11 @@ p {
   .digits span {
     font-size: 42px;
     padding: 10px 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
