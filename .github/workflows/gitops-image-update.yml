@@ -1,0 +1,69 @@
+name: Build Image And Update GitOps Manifests
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-push-and-update:
+    # Prevent loops on the bot's manifest update commit.
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/shuttle-piping
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Update deployment image tag
+        env:
+          OWNER: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          OWNER_LC="$(echo "${OWNER}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE="ghcr.io/${OWNER_LC}/shuttle-piping:sha-${SHA}"
+          sed -i -E "s|image: .*|image: ${IMAGE}|g" deploy/k8s/deployment.yaml
+          echo "Updated image to ${IMAGE}"
+
+      - name: Commit manifest update
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- deploy/k8s/deployment.yaml; then
+            echo "No manifest changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add deploy/k8s/deployment.yaml
+          git commit -m "ci: update image tag to ${GITHUB_SHA} [skip ci]"
+          git push

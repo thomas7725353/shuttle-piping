@@ -125,26 +125,29 @@ This repository includes an Argo CD application and Kubernetes manifests for loc
 - Argo CD app manifest: `deploy/argocd/application.yaml`
 - Kubernetes manifests: `deploy/k8s/`
 - Container build file: `Dockerfile`
+- Automation workflow: `.github/workflows/gitops-image-update.yml`
 
-### Local GitOps Flow
+### End-to-end Auto Deploy Flow
 
-1. Build image into minikube Docker daemon:
-```bash
-eval "$(minikube -p minikube docker-env)"
-docker build -t shuttle-piping:gitops-local .
-```
-2. Push this repository to `main`.
-3. Apply Argo CD app once:
+1. Push code to `main`.
+2. GitHub Actions builds and pushes image to GHCR: `ghcr.io/thomas7725353/shuttle-piping:sha-<commit_sha>`.
+3. The same workflow updates `deploy/k8s/deployment.yaml` image tag and commits it back to `main`.
+4. Argo CD detects manifest changes in `deploy/k8s` and auto-syncs to cluster.
+5. Kubernetes rolls out the new image automatically.
+
+### Bootstrap (first time only)
+
+1. Apply Argo CD app once:
 ```bash
 kubectl apply -f deploy/argocd/application.yaml
 ```
-4. Argo CD auto-syncs `deploy/k8s/*` to the local cluster.
+2. Ensure GHCR package `shuttle-piping` is readable by your cluster runtime (public image recommended for local testing).
 
 ### Important Note About Commits
 
 Argo CD reacts to Git commits, but it only changes Kubernetes resources when files under the tracked manifest path (`deploy/k8s`) actually change.
 
-- Commit only `README.md`: Argo CD detects a new revision, but no rollout is expected.
+- Commit only `README.md`: workflow still builds image, but Argo CD rollout depends on whether `deploy/k8s` changed.
 - Commit changes in `deploy/k8s`: Argo CD will auto-sync and rollout updates.
 
 ## Project Structure
