@@ -118,10 +118,43 @@ cargo shuttle deploy
 cargo test
 ```
 
+## GitOps (Minikube + Argo CD)
+
+This repository includes an Argo CD application and Kubernetes manifests for local GitOps testing:
+
+- Argo CD app manifest: `deploy/argocd/application.yaml`
+- Kubernetes manifests: `deploy/k8s/`
+- Container build file: `Dockerfile`
+
+### Local GitOps Flow
+
+1. Build image into minikube Docker daemon:
+```bash
+eval "$(minikube -p minikube docker-env)"
+docker build -t shuttle-piping:gitops-local .
+```
+2. Push this repository to `main`.
+3. Apply Argo CD app once:
+```bash
+kubectl apply -f deploy/argocd/application.yaml
+```
+4. Argo CD auto-syncs `deploy/k8s/*` to the local cluster.
+
+### Important Note About Commits
+
+Argo CD reacts to Git commits, but it only changes Kubernetes resources when files under the tracked manifest path (`deploy/k8s`) actually change.
+
+- Commit only `README.md`: Argo CD detects a new revision, but no rollout is expected.
+- Commit changes in `deploy/k8s`: Argo CD will auto-sync and rollout updates.
+
 ## Project Structure
 
 ```
 shuttle-piping/
+├── Dockerfile               # Container build for local K8s deployment
+├── deploy/
+│   ├── argocd/application.yaml # Argo CD Application
+│   └── k8s/                # K8s manifests for GitOps sync
 ├── src/main.rs              # Server (handlers, transfer manager, tests)
 ├── Cargo.toml               # Dependencies
 ├── README.md                # English documentation

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shuttle-piping
+  namespace: shuttle-piping
+  labels:
+    app: shuttle-piping
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shuttle-piping
+  template:
+    metadata:
+      labels:
+        app: shuttle-piping
+    spec:
+      containers:
+      - name: shuttle-piping
+        image: shuttle-piping:gitops-local
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8080"
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 20
