@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: shuttle-piping
-        image: ghcr.io/thomas7725353/shuttle-piping:sha-6a08c99863226367d0633771b00a58d06d22f4bc
+        image: ghcr.io/thomas7725353/shuttle-piping:sha-149e4326253e04110c84dbf39c1f5f69d16c5e0c
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
