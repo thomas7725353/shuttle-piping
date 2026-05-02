@@ -1101,6 +1101,9 @@ mod tests {
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(resp.headers().get("content-type").unwrap(), "text/plain; charset=utf-8");
+
+    let body = resp.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(body.as_ref(), b"typed content");
   }
 
   #[tokio::test]
