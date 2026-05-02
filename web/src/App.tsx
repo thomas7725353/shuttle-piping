@@ -530,9 +530,29 @@ function App() {
   return (
     <div className="page-bg">
       <div className="page-shell">
+        <header className="app-header">
+          <div>
+            <h1>Shuttle Piping</h1>
+            <p>Stream text and files</p>
+          </div>
+          <span className="health-pill">Ready</span>
+        </header>
+
+        <main className="workspace">
+          <div className="send-column">
         {!showWaiting && (
           <section className="card send-card">
-            <h2>Send</h2>
+            <div className="card-head">
+              <div>
+                <h2>Send</h2>
+                <p>{sendContentMode === "text" ? formatSize(textSize) : `${files.length} files · ${formatSize(totalSize)}`}</p>
+              </div>
+              {(textValue || files.length > 0) && (
+                <button className="subtle-btn" type="button" onClick={resetSend}>
+                  Reset
+                </button>
+              )}
+            </div>
             <div className="composer">
               <div className="content-tabs">
                 <button
@@ -570,30 +590,27 @@ function App() {
                       setSendError("");
                       setSendMessage("");
                     }}
-                    placeholder="Paste or type text"
+                    placeholder="Paste text"
                   />
-                  <p>{formatSize(textSize)}</p>
                 </div>
               ) : files.length === 0 ? (
-                <div className="plus-wrap">
-                  <button className="plus-btn" type="button" onClick={openPicker}>
-                    +
+                <div className="file-drop">
+                  <button className="file-pick-btn" type="button" onClick={openPicker}>
+                    Choose files
                   </button>
+                  <p>No files selected</p>
                 </div>
               ) : (
                 <>
                   <div className="composer-head">
-                    <button className="inline-add" type="button" onClick={openPicker}>
-                      +
-                    </button>
                     <div>
-                      <h3>Add more</h3>
+                      <h3>Files</h3>
                       <p>
                         Total {files.length} files · {formatSize(totalSize)}
                       </p>
                     </div>
-                    <button className="ghost-btn" type="button" onClick={resetSend}>
-                      Reset
+                    <button className="subtle-btn" type="button" onClick={openPicker}>
+                      Add
                     </button>
                   </div>
 
@@ -677,9 +694,16 @@ function App() {
             {sendMessage && <p className="ok">{sendMessage}</p>}
           </section>
         )}
+          </div>
 
+          <div className="receive-column">
         <section className="card receive-card">
-          <h2>Receive</h2>
+          <div className="card-head">
+            <div>
+              <h2>Receive</h2>
+              <p>{receivedText ? receivedTextFilename || TEXT_FILENAME : "Enter key"}</p>
+            </div>
+          </div>
           <div className="receive-input-row">
             <input
               type="text"
@@ -688,7 +712,7 @@ function App() {
               value={receiveKey}
               disabled={isReceiving}
               onChange={(event) => setReceiveKey(event.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="Input key"
+              placeholder="000000"
             />
             <button type="button" onClick={() => void startReceive()} disabled={isReceiving}>
               {isReceiving ? <span className="spinner" aria-label="Downloading" /> : "⇩"}
@@ -721,6 +745,8 @@ function App() {
             </div>
           )}
         </section>
+          </div>
+        </main>
 
         <input
           ref={fileInputRef}
