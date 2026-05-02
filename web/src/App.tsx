@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 type TransferMode = "direct" | "link";
+type SendContentMode = "text" | "files";
 
 type SessionState =
   | "reserved"
@@ -46,6 +47,8 @@ interface UploadPayload {
 }
 
 const TAR_BLOCK_SIZE = 512;
+const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
+const TEXT_FILENAME = "message.txt";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -194,6 +197,20 @@ async function copyTextToClipboard(value: string): Promise<void> {
   document.body.removeChild(textarea);
 }
 
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).length;
+}
+
+function buildTextUploadPayload(text: string): UploadPayload {
+  return {
+    body: new Blob([text], { type: TEXT_CONTENT_TYPE }),
+    contentType: TEXT_CONTENT_TYPE,
+    archiveName: TEXT_FILENAME,
+    totalSize: utf8ByteLength(text),
+    fileNames: [TEXT_FILENAME]
+  };
+}
+
 async function buildUploadPayload(files: File[]): Promise<UploadPayload> {
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
@@ -231,6 +248,25 @@ async function buildUploadPayload(files: File[]): Promise<UploadPayload> {
   };
 }
 
+function isInlineTextContentType(contentType: string | null): boolean {
+  if (!contentType) {
+    return false;
+  }
+
+  const normalized = contentType.split(";")[0].trim().toLowerCase();
+  return (
+    normalized.startsWith("text/") ||
+    normalized === "application/json" ||
+    normalized === "application/xml" ||
+    normalized === "application/javascript" ||
+    normalized === "application/x-javascript"
+  );
+}
+
+function downloadText(text: string, filename: string, contentType: string): void {
+  triggerDownload(new Blob([text], { type: contentType }), filename);
+}
+
 async function createSession(mode: TransferMode, metadata: SessionMetadata): Promise<SessionResponse> {
   const response = await fetch("/api/session", {
     method: "POST",
@@ -259,6 +295,8 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const autoLinkHandled = useRef(false);
 
+  const [sendContentMode, setSendContentMode] = useState<SendContentMode>("text");
+  const [textValue, setTextValue] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [mode, setMode] = useState<TransferMode>("direct");
   const [sendError, setSendError] = useState<string>("");
@@ -273,17 +311,22 @@ function App() {
   const [receiveError, setReceiveError] = useState("");
   const [isReceiving, setIsReceiving] = useState(false);
   const [receiveMessage, setReceiveMessage] = useState("");
+  const [receivedText, setReceivedText] = useState("");
+  const [receivedTextFilename, setReceivedTextFilename] = useState("");
+  const [receivedTextContentType, setReceivedTextContentType] = useState(TEXT_CONTENT_TYPE);
   const [copyMessage, setCopyMessage] = useState("");
 
   const totalSize = useMemo(
     () => files.reduce((sum, file) => sum + file.size, 0),
     [files]
   );
+  const textSize = useMemo(() => utf8ByteLength(textValue), [textValue]);
 
   const openPicker = () => fileInputRef.current?.click();
 
   const resetSend = () => {
     setFiles([]);
+    setTextValue("");
     setSession(null);
     setSessionStatus("");
     setSecondsLeft(0);
@@ -317,6 +360,9 @@ function App() {
 
       setReceiveError("");
       setReceiveMessage("");
+      setReceivedText("");
+      setReceivedTextFilename("");
+      setReceivedTextContentType(TEXT_CONTENT_TYPE);
       setIsReceiving(true);
 
       try {
@@ -325,11 +371,21 @@ function App() {
           throw new Error(await response.text());
         }
 
-        const blob = await response.blob();
+        const contentType = response.headers.get("content-type") || "application/octet-stream";
         const filename =
           parseDispositionFilename(response.headers.get("content-disposition")) ||
-          `transfer-${key}.bin`;
+          (isInlineTextContentType(contentType) ? TEXT_FILENAME : `transfer-${key}.bin`);
 
+        if (isInlineTextContentType(contentType)) {
+          const text = await response.text();
+          setReceivedText(text);
+          setReceivedTextFilename(filename);
+          setReceivedTextContentType(contentType);
+          setReceiveMessage(`Received ${filename}`);
+          return;
+        }
+
+        const blob = await response.blob();
         triggerDownload(blob, filename);
         setReceiveMessage(`Downloaded ${filename}`);
       } catch (error) {
@@ -343,7 +399,15 @@ function App() {
   );
 
   const startSend = async () => {
-    if (files.length === 0 || isSending) {
+    const trimmedText = textValue.trim();
+    if (
+      isSending ||
+      (sendContentMode === "files" && files.length === 0) ||
+      (sendContentMode === "text" && trimmedText.length === 0)
+    ) {
+      if (sendContentMode === "text" && trimmedText.length === 0) {
+        setSendError("Text is empty");
+      }
       return;
     }
 
@@ -352,7 +416,10 @@ function App() {
     setIsSending(true);
 
     try {
-      const uploadPayload = await buildUploadPayload(files);
+      const uploadPayload =
+        sendContentMode === "text"
+          ? buildTextUploadPayload(textValue)
+          : await buildUploadPayload(files);
       const metadata: SessionMetadata = {
         file_names: uploadPayload.fileNames,
         total_size: uploadPayload.totalSize,
@@ -369,7 +436,7 @@ function App() {
         method: "PUT",
         headers: {
           "Content-Type": uploadPayload.contentType,
-          "Content-Disposition": `attachment; filename="${uploadPayload.archiveName.replace(/"/g, "_")}"`
+          "Content-Disposition": `${sendContentMode === "text" ? "inline" : "attachment"}; filename="${uploadPayload.archiveName.replace(/"/g, "_")}"`
         },
         body: uploadPayload.body
       });
@@ -466,66 +533,108 @@ function App() {
         {!showWaiting && (
           <section className="card send-card">
             <h2>Send</h2>
-            {files.length === 0 ? (
-              <div className="plus-wrap">
-                <button className="plus-btn" type="button" onClick={openPicker}>
-                  +
+            <div className="composer">
+              <div className="content-tabs">
+                <button
+                  type="button"
+                  className={sendContentMode === "text" ? "active" : ""}
+                  onClick={() => {
+                    setSendContentMode("text");
+                    setSendError("");
+                    setSendMessage("");
+                  }}
+                >
+                  Text
+                </button>
+                <button
+                  type="button"
+                  className={sendContentMode === "files" ? "active" : ""}
+                  onClick={() => {
+                    setSendContentMode("files");
+                    setSendError("");
+                    setSendMessage("");
+                  }}
+                >
+                  Files
                 </button>
               </div>
-            ) : (
-              <div className="composer">
-                <div className="composer-head">
-                  <button className="inline-add" type="button" onClick={openPicker}>
+
+              {sendContentMode === "text" ? (
+                <div className="text-send">
+                  <textarea
+                    className="text-composer"
+                    value={textValue}
+                    disabled={isSending}
+                    onChange={(event) => {
+                      setTextValue(event.target.value);
+                      setSendError("");
+                      setSendMessage("");
+                    }}
+                    placeholder="Paste or type text"
+                  />
+                  <p>{formatSize(textSize)}</p>
+                </div>
+              ) : files.length === 0 ? (
+                <div className="plus-wrap">
+                  <button className="plus-btn" type="button" onClick={openPicker}>
                     +
                   </button>
-                  <div>
-                    <h3>Add more</h3>
-                    <p>
-                      Total {files.length} files · {formatSize(totalSize)}
-                    </p>
-                  </div>
-                  <button className="ghost-btn" type="button" onClick={resetSend}>
-                    Reset
-                  </button>
                 </div>
-
-                <div className="file-list">
-                  {files.map((file, index) => (
-                    <div className="file-row" key={`${file.name}-${index}`}>
-                      <span>{file.name}</span>
-                      <span>{formatSize(file.size)}</span>
+              ) : (
+                <>
+                  <div className="composer-head">
+                    <button className="inline-add" type="button" onClick={openPicker}>
+                      +
+                    </button>
+                    <div>
+                      <h3>Add more</h3>
+                      <p>
+                        Total {files.length} files · {formatSize(totalSize)}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                    <button className="ghost-btn" type="button" onClick={resetSend}>
+                      Reset
+                    </button>
+                  </div>
 
-                <div className="mode-tabs">
-                  <button
-                    type="button"
-                    className={mode === "direct" ? "active" : ""}
-                    onClick={() => setMode("direct")}
-                  >
-                    Direct
-                  </button>
-                  <button
-                    type="button"
-                    className={mode === "link" ? "active" : ""}
-                    onClick={() => setMode("link")}
-                  >
-                    Link
-                  </button>
-                  <button type="button" className="disabled" disabled>
-                    Email
-                  </button>
-                </div>
+                  <div className="file-list">
+                    {files.map((file, index) => (
+                      <div className="file-row" key={`${file.name}-${index}`}>
+                        <span>{file.name}</span>
+                        <span>{formatSize(file.size)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
-                <button className="send-btn" type="button" onClick={startSend} disabled={isSending}>
-                  {isSending ? "Sending..." : "Send"}
+              <div className="mode-tabs">
+                <button
+                  type="button"
+                  className={mode === "direct" ? "active" : ""}
+                  onClick={() => setMode("direct")}
+                >
+                  Direct
                 </button>
-
-                {sendError && <p className="err">{sendError}</p>}
-                {sendMessage && <p className="ok">{sendMessage}</p>}
+                <button
+                  type="button"
+                  className={mode === "link" ? "active" : ""}
+                  onClick={() => setMode("link")}
+                >
+                  Link
+                </button>
+                <button type="button" className="disabled" disabled>
+                  Email
+                </button>
               </div>
-            )}
+
+              <button className="send-btn" type="button" onClick={startSend} disabled={isSending}>
+                {isSending ? "Sending..." : "Send"}
+              </button>
+
+              {sendError && <p className="err">{sendError}</p>}
+              {sendMessage && <p className="ok">{sendMessage}</p>}
+            </div>
           </section>
         )}
 
@@ -588,6 +697,29 @@ function App() {
           {isReceiving && <p className="status-line">Downloading...</p>}
           {receiveError && <p className="err">{receiveError}</p>}
           {receiveMessage && <p className="ok">{receiveMessage}</p>}
+          {receivedText && (
+            <div className="text-preview">
+              <div className="text-preview-actions">
+                <span>{receivedTextFilename || TEXT_FILENAME}</span>
+                <button type="button" onClick={() => void copyTextToClipboard(receivedText)}>
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadText(
+                      receivedText,
+                      receivedTextFilename || TEXT_FILENAME,
+                      receivedTextContentType
+                    )
+                  }
+                >
+                  Download
+                </button>
+              </div>
+              <pre>{receivedText}</pre>
+            </div>
+          )}
         </section>
 
         <input
