@@ -46,6 +46,7 @@ use {
       HashMap,
       HashSet,
     },
+    net::ToSocketAddrs,
     sync::Arc,
     time::{
       Duration,
@@ -442,9 +443,22 @@ fn link_url_from_headers(headers: &HeaderMap, key: &str) -> String {
     .get("x-forwarded-proto")
     .and_then(|h| h.to_str().ok())
     .filter(|v| !v.is_empty())
-    .unwrap_or_else(|| if host.starts_with("localhost") { "http" } else { "https" });
+    .unwrap_or_else(|| if is_local_http_host(host) { "http" } else { "https" });
 
   format!("{scheme}://{host}{path}")
+}
+
+fn is_local_http_host(host: &str) -> bool {
+  let host_with_port = if host.rsplit_once(':').is_some() {
+    host.to_owned()
+  } else {
+    format!("{host}:80")
+  };
+
+  host_with_port
+    .to_socket_addrs()
+    .map(|mut addrs| addrs.any(|addr| addr.ip().is_loopback()))
+    .unwrap_or(false)
 }
 
 fn sanitize_filename(name: &str) -> String {
@@ -950,6 +964,16 @@ mod tests {
     assert!(validate_session_key("12345").is_err());
     assert!(validate_session_key("1234567").is_err());
     assert!(validate_session_key("12ab56").is_err());
+  }
+
+  #[test]
+  fn test_local_hosts_use_http_links() {
+    assert!(is_local_http_host("localhost"));
+    assert!(is_local_http_host("localhost:8080"));
+    assert!(is_local_http_host("127.0.0.1"));
+    assert!(is_local_http_host("127.0.0.1:18081"));
+    assert!(is_local_http_host("[::1]:18081"));
+    assert!(!is_local_http_host("example.com"));
   }
 
   #[tokio::test]
