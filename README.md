@@ -162,7 +162,6 @@ shuttle-piping/
 ├── Cargo.toml               # Dependencies
 ├── README.md                # English documentation
 ├── README_CN.md             # Chinese documentation
-├── DEPLOYMENT_GUIDE.md      # Deployment guide
 ├── ZERO_COPY_ARCHITECTURE.md # Architecture deep-dive
 ├── test_examples.sh         # Example test scripts
 ├── test_transfer.sh         # Transfer test script
@@ -186,4 +185,3 @@ MIT — see [LICENSE](LICENSE)
 - [Shuttle](https://shuttle.dev) — Rust cloud platform
 - [Axum](https://github.com/tokio-rs/axum) — Web framework
 - [Tokio](https://tokio.rs) — Async runtime
-

@@ -139,7 +139,6 @@ shuttle-piping/
 ├── Cargo.toml               # 依赖配置
 ├── README.md                # 英文文档
 ├── README_CN.md             # 中文文档
-├── DEPLOYMENT_GUIDE.md      # 部署指南
 ├── ZERO_COPY_ARCHITECTURE.md # 架构深度解析
 ├── test_examples.sh         # 测试示例脚本
 ├── test_transfer.sh         # 传输测试脚本
