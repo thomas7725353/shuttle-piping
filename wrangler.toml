@@ -10,6 +10,10 @@ binding = "ASSETS"
 name = "TRANSFER_OBJECT"
 class_name = "TransferObject"
 
+[[routes]]
+pattern = "p2p.gorustai.com"
+custom_domain = true
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["TransferObject"]
