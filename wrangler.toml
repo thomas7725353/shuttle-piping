@@ -1,0 +1,15 @@
+name = "shuttle-piping"
+main = "worker/src/index.ts"
+compatibility_date = "2026-06-10"
+
+[assets]
+directory = "web/dist"
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "TRANSFER_OBJECT"
+class_name = "TransferObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TransferObject"]

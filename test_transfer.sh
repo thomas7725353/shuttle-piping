@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-SERVER_URL="https://shuttle-piping-8zed.shuttle.app"
+SERVER_URL="${SERVER_URL:-http://127.0.0.1:8787}"
 TRANSFER_ID="file-transfer-test-$(date +%s)"
 
 if [ "$#" -ne 1 ]; then

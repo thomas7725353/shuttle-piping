@@ -1,45 +1,48 @@
-# Shuttle Piping — HTTP 流式传输服务
+# Shuttle Piping
 
-[![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![Shuttle](https://img.shields.io/badge/Shuttle-v0.57-blue.svg)](https://www.shuttle.rs/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+面向小文件和文本的 HTTP 流式传输服务。本分支改为 Cloudflare Worker + Durable Object 后端，前端继续使用现有 React/Vite UI。
 
-基于 Rust + Axum + Shuttle 的高性能零拷贝流式传输服务，支持任意大小文件的实时点对点传输。
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-blue.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## 特性
 
-- **零拷贝流式传输** — 数据直接从发送端流向接收端，无内存缓存
-- **无限文件大小** — 支持 10GB+ 传输，内存恒定 ~20MB
-- **双向先到支持** — 发送端或接收端谁先连接都可以
-- **Content-Type 透传** — 发送端的 Content-Type 自动传递给接收端
-- **传输 ID 校验** — 仅允许 `[a-zA-Z0-9._-]`，最长 128 字符
-- **自动清理** — 过期传输 1 小时后自动清理
-- **云端部署** — 一键部署到 Shuttle，自动 HTTPS
+- **纯 TypeScript Worker 后端** — 使用 Cloudflare Workers 和 Durable Objects
+- **直接 HTTP 流式传输** — 不落对象存储，发送端数据直接流向接收端
+- **发送端/接收端先到都支持** — 任一方可以先等待
+- **保留浏览器 UI** — 现有 React/Vite 前端通过 Worker 静态资源托管
+- **6 位 key、链接和二维码** — UI session 默认 10 分钟过期
+- **兼容 curl 用法** — 保留原版 `piping-server` 风格的 `PUT /path` 到 `GET /path`
 
----
+## Cloudflare 限制
 
-## 在线服务
+这个 Worker 版本适合文本和小文件。上传请求体大小受 Cloudflare 账号套餐限制：
 
-**生产环境**: https://shuttle-piping-8zed.shuttle.app
+- Free / Pro: 100 MB
+- Business: 200 MB
+- Enterprise: 默认 500 MB，可联系 Cloudflare 调整
 
-```bash
-curl https://shuttle-piping-8zed.shuttle.app/status
-```
-
----
+响应可以流式返回，但超过账号上传上限的请求会在进入 Worker 前被 Cloudflare 拒绝。若需要原版 `piping-server` 那种无限大文件、超长时间 HTTP 流，请继续使用容器或 VM 后端。
 
 ## 快速开始
 
-### 基本使用
+设置部署后的 Worker 地址：
 
-**终端 1 — 发送数据**:
 ```bash
-echo "Hello, Piping!" | curl -T - https://shuttle-piping-8zed.shuttle.app/my-transfer
+export SERVER_URL="https://shuttle-piping.<your-subdomain>.workers.dev"
 ```
 
-**终端 2 — 接收数据**:
+终端 1：
+
 ```bash
-curl https://shuttle-piping-8zed.shuttle.app/my-transfer
+echo "Hello, Piping!" | curl -T - "$SERVER_URL/my-transfer"
+```
+
+终端 2：
+
+```bash
+curl "$SERVER_URL/my-transfer"
 ```
 
 任一终端可先连接，服务会自动配对。
@@ -48,144 +51,107 @@ curl https://shuttle-piping-8zed.shuttle.app/my-transfer
 
 ```bash
 # 发送
-curl -T ./myfile.txt https://shuttle-piping-8zed.shuttle.app/file-transfer
+curl -T ./myfile.txt "$SERVER_URL/file-transfer"
 
 # 接收
-curl https://shuttle-piping-8zed.shuttle.app/file-transfer > received.txt
+curl "$SERVER_URL/file-transfer" > received.txt
 ```
 
 ### 压缩传输
 
 ```bash
-# 发送 (压缩)
-tar -czf - ./my-directory | curl -T - https://shuttle-piping-8zed.shuttle.app/backup
+# 发送
+tar -czf - ./my-directory | curl -T - "$SERVER_URL/backup"
 
-# 接收 (解压)
-curl https://shuttle-piping-8zed.shuttle.app/backup | tar -xzf -
+# 接收
+curl "$SERVER_URL/backup" | tar -xzf -
 ```
-
-### 并发传输
-
-```bash
-# 使用不同的传输 ID
-curl -T file1.bin https://your-url/transfer1 &
-curl -T file2.bin https://your-url/transfer2 &
-wait
-```
-
----
-
-## 架构 (v3.0.0)
-
-```
-Sender (PUT /{id})              Receiver (GET /{id})
-       │                               │
-       ▼                               ▼
-┌─────────────────────────────────────────────┐
-│           TransferManager                   │
-│  parking_lot::Mutex<HashMap<String, Slot>>  │
-│                                             │
-│  SenderWaiting ←→ ReceiverWaiting           │
-│  (oneshot channel 会合点)                    │
-└─────────────────────────────────────────────┘
-       │                               │
-       └───── 零拷贝 Body 流 ──────────┘
-```
-
-### 核心设计
-
-- **零 Mutex/Transfer** — 仅一个 `parking_lot::Mutex` 保护协调 Map，持锁时间微秒级
-- **Oneshot 会合** — 先到方插入槽位，后到方取出并通过 oneshot channel 交换 Body
-- **无竞态条件** — Body 所有权原子转移
-
----
 
 ## 本地开发
 
-### 前置要求
+前置要求：
 
-- Rust 1.70+
-- Shuttle CLI: `cargo install cargo-shuttle`
+- Node.js 22+
+- npm
+- Cloudflare Wrangler CLI，或直接使用本项目的 `npx wrangler`
 
-### 本地运行
-
-```bash
-git clone https://github.com/your-repo/shuttle-piping.git
-cd shuttle-piping
-cargo shuttle run
-# http://localhost:8000
-```
-
-### 部署
+安装依赖：
 
 ```bash
-cargo shuttle login
-cargo shuttle deploy
+npm install
+npm --prefix web install
 ```
 
-### 测试
+本地运行：
 
 ```bash
-cargo test
+npm run build:web
+npx wrangler dev --local --ip 127.0.0.1 --port 8787
 ```
 
----
+打开：
+
+```bash
+http://127.0.0.1:8787/app
+```
+
+## 部署
+
+登录 Cloudflare：
+
+```bash
+npx wrangler login
+```
+
+部署前校验：
+
+```bash
+npm run cf:dry-run
+```
+
+部署：
+
+```bash
+npm run deploy
+```
+
+`wrangler.toml` 配置了：
+
+- `web/dist` 静态资源
+- `TRANSFER_OBJECT` Durable Object 绑定
+- 初始 Durable Object migration
+
+## API
+
+| 端点 | 方法 | 说明 |
+| --- | --- | --- |
+| `/{id}` | `PUT` / `POST` | 发送数据 |
+| `/{id}` | `GET` | 接收数据 |
+| `/api/session` | `POST` | 创建 6 位 UI session |
+| `/api/session/{key}` | `GET` | 查询 session 状态 |
+| `/status` | `GET` | 健康检查和后端信息 |
+
+原版 `piping-server` 的 `?n=` 多接收端模式在 Worker 后端暂不支持。当前版本每个 path 支持一个发送端和一个接收端。
 
 ## 项目结构
 
 ```
 shuttle-piping/
-├── src/main.rs              # 服务器 (处理器、传输管理器、测试)
-├── Cargo.toml               # 依赖配置
-├── README.md                # 英文文档
-├── README_CN.md             # 中文文档
-├── ZERO_COPY_ARCHITECTURE.md # 架构深度解析
-├── test_examples.sh         # 测试示例脚本
-├── test_transfer.sh         # 传输测试脚本
-└── LICENSE                  # MIT 许可证
+├── worker/src/index.ts      # Cloudflare Worker 和 Durable Object 后端
+├── web/                     # React/Vite 前端
+├── wrangler.toml            # Cloudflare Worker 配置
+├── package.json             # Worker 构建/部署脚本
+├── test_examples.sh         # 手动测试示例
+├── test_transfer.sh         # 文件传输 smoke test
+└── LICENSE
 ```
 
----
+## 旧 Rust 后端
 
-## API 接口
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/{id}` | PUT | 发送数据 |
-| `/{id}` | GET | 接收数据 |
-| `/status` | GET | 服务健康状态和活跃传输 |
-
----
-
-## 版本历史
-
-### v3.0.0
-
-- 全新无锁架构：oneshot channel 会合 + parking_lot Mutex
-- 消除全部竞态条件
-- 支持 Receiver 先连接
-- Content-Type 透传
-- 传输 ID 校验
-- 过期时间缩短为 1 小时
-- 删除 hop-by-hop 非法头
-- 添加单元测试
-
-### v2.2.0
-
-- 零拷贝架构 + DashMap
-
-### v1.0.0
-
-- 基础文件流式传输功能
-
----
-
-## 许可证
-
-MIT — 详见 [LICENSE](LICENSE)
+之前的 Rust/Axum 后端仍保留在 `src/main.rs`，方便迁移期间参考。本分支的主部署目标已经改为 Cloudflare Worker。
 
 ## 致谢
 
-- [Shuttle.rs](https://www.shuttle.rs/) — Rust 云平台
-- [Axum](https://github.com/tokio-rs/axum) — Web 框架
-- [Tokio](https://tokio.rs/) — 异步运行时
+- [piping-server](https://github.com/nwtgck/piping-server) — 原版 HTTP 流式传输行为
+- [Cloudflare Workers](https://workers.cloudflare.com/) — Worker 运行时
+- [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/) — 每个传输 key 的会合协调

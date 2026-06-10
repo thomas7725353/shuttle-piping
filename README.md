@@ -1,187 +1,157 @@
 # Shuttle Piping
 
-HTTP streaming transfer service deployed on [Shuttle](https://shuttle.dev) — true zero-storage streaming.
+HTTP streaming transfer service for small files and text, deployed as a Cloudflare Worker with a Durable Object rendezvous backend.
 
-[![Deploy on Shuttle](https://img.shields.io/badge/Deploy%20on-Shuttle-orange)](https://shuttle.dev)
-[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Features
 
-- **Zero-copy streaming** — data flows directly from sender to receiver, no buffering
-- **Unlimited file size** — supports 10GB+ transfers with constant ~20MB memory
-- **Receiver-first support** — either side can connect first
-- **Content-Type forwarding** — sender's Content-Type is passed to receiver
-- **Transfer ID validation** — safe IDs only: `[a-zA-Z0-9._-]`, max 128 chars
-- **Auto cleanup** — expired transfers cleaned up after 1 hour
-- **Cloud-ready** — one-command deploy to Shuttle with automatic HTTPS
+- **Worker-native TypeScript backend** — routes requests through Cloudflare Workers and Durable Objects
+- **Direct HTTP streaming** — sender data streams to the receiver without app-level object storage
+- **Sender-first and receiver-first support** — either side can wait for the other
+- **Browser UI included** — the existing React/Vite UI is served from Worker static assets
+- **Session links and QR codes** — 6-digit keys expire after 10 minutes
+- **Curl-friendly API** — keeps the original `piping-server` style `PUT /path` to `GET /path`
 
-## Live Service
+## Cloudflare Limits
 
-**Production**: https://shuttle-piping-8zed.shuttle.app
+This Worker version is for text and small file transfers. The upload request body is limited by the Cloudflare account plan:
 
-```bash
-curl https://shuttle-piping-8zed.shuttle.app/status
-```
+- Free / Pro: 100 MB
+- Business: 200 MB
+- Enterprise: 500 MB default, configurable by Cloudflare
+
+Responses can stream, but uploads larger than the account limit will be rejected by Cloudflare before the Worker can handle them. If you need original `piping-server` style unlimited or multi-hour streams, use a container or VM backend instead.
 
 ## Quick Start
 
-**Terminal 1 — Send**:
+Set your deployed Worker URL:
+
 ```bash
-echo "Hello, Piping!" | curl -T - https://shuttle-piping-8zed.shuttle.app/my-transfer
+export SERVER_URL="https://shuttle-piping.<your-subdomain>.workers.dev"
 ```
 
-**Terminal 2 — Receive**:
+Terminal 1:
+
 ```bash
-curl https://shuttle-piping-8zed.shuttle.app/my-transfer
+echo "Hello, Piping!" | curl -T - "$SERVER_URL/my-transfer"
 ```
 
-Either terminal can connect first — the service pairs them automatically.
+Terminal 2:
+
+```bash
+curl "$SERVER_URL/my-transfer"
+```
+
+Either terminal can connect first.
 
 ### File Transfer
 
 ```bash
 # Send
-curl -T ./myfile.txt https://shuttle-piping-8zed.shuttle.app/file-transfer
+curl -T ./myfile.txt "$SERVER_URL/file-transfer"
 
 # Receive
-curl https://shuttle-piping-8zed.shuttle.app/file-transfer > received.txt
+curl "$SERVER_URL/file-transfer" > received.txt
 ```
 
 ### Compressed Transfer
 
 ```bash
-# Send (compress)
-tar -czf - ./my-directory | curl -T - https://shuttle-piping-8zed.shuttle.app/backup
-
-# Receive (decompress)
-curl https://shuttle-piping-8zed.shuttle.app/backup | tar -xzf -
-```
-
-### Real-time Log Streaming
-
-```bash
 # Send
-tail -f /var/log/syslog | curl -T - https://shuttle-piping-8zed.shuttle.app/logs
+tar -czf - ./my-directory | curl -T - "$SERVER_URL/backup"
 
 # Receive
-curl https://shuttle-piping-8zed.shuttle.app/logs
+curl "$SERVER_URL/backup" | tar -xzf -
 ```
-
-## Architecture (v3.0.0)
-
-```
-Sender (PUT /{id})              Receiver (GET /{id})
-       │                               │
-       ▼                               ▼
-┌─────────────────────────────────────────────┐
-│           TransferManager                   │
-│  parking_lot::Mutex<HashMap<String, Slot>>  │
-│                                             │
-│  SenderWaiting ←→ ReceiverWaiting           │
-│  (oneshot channel rendezvous)               │
-└─────────────────────────────────────────────┘
-       │                               │
-       └───── zero-copy Body stream ───┘
-```
-
-- **Zero Mutex per transfer** — single `parking_lot::Mutex` on the coordination map, held only for microsecond insert/remove
-- **Oneshot rendezvous** — first party inserts a slot, second party takes it and they exchange the Body through a oneshot channel
-- **No race conditions** — body ownership is transferred atomically
 
 ## Local Development
 
-### Prerequisites
+Prerequisites:
 
-- Rust 1.70+
-- Shuttle CLI: `cargo install cargo-shuttle`
+- Node.js 22+
+- npm
+- Cloudflare Wrangler CLI, or use the local `npx wrangler`
 
-### Run Locally
-
-```bash
-git clone https://github.com/YOUR_USERNAME/shuttle-piping.git
-cd shuttle-piping
-cargo shuttle run
-# http://localhost:8000
-```
-
-### Deploy
+Install dependencies:
 
 ```bash
-cargo shuttle login
-cargo shuttle deploy
+npm install
+npm --prefix web install
 ```
 
-### Test
+Run locally:
 
 ```bash
-cargo test
+npm run build:web
+npx wrangler dev --local --ip 127.0.0.1 --port 8787
 ```
 
-## GitOps (Minikube + Argo CD)
+Open:
 
-This repository includes an Argo CD application and Kubernetes manifests for local GitOps testing:
-
-- Argo CD app manifest: `deploy/argocd/application.yaml`
-- Kubernetes manifests: `deploy/k8s/`
-- Container build file: `Dockerfile`
-- Automation workflow: `.github/workflows/gitops-image-update.yml`
-
-### End-to-end Auto Deploy Flow
-
-1. Push code to `main`.
-2. GitHub Actions builds and pushes image to GHCR: `ghcr.io/thomas7725353/shuttle-piping:sha-<commit_sha>`.
-3. The same workflow updates `deploy/k8s/deployment.yaml` image tag and commits it back to `main`.
-4. Argo CD detects manifest changes in `deploy/k8s` and auto-syncs to cluster.
-5. Kubernetes rolls out the new image automatically.
-
-### Bootstrap (first time only)
-
-1. Apply Argo CD app once:
 ```bash
-kubectl apply -f deploy/argocd/application.yaml
+http://127.0.0.1:8787/app
 ```
-2. Ensure GHCR package `shuttle-piping` is readable by your cluster runtime (public image recommended for local testing).
 
-### Important Note About Commits
+## Deploy
 
-Argo CD reacts to Git commits, but it only changes Kubernetes resources when files under the tracked manifest path (`deploy/k8s`) actually change.
+Log in to Cloudflare:
 
-- Commit only `README.md`: workflow still builds image, but Argo CD rollout depends on whether `deploy/k8s` changed.
-- Commit changes in `deploy/k8s`: Argo CD will auto-sync and rollout updates.
+```bash
+npx wrangler login
+```
+
+Dry-run validation:
+
+```bash
+npm run cf:dry-run
+```
+
+Deploy:
+
+```bash
+npm run deploy
+```
+
+`wrangler.toml` defines:
+
+- static assets from `web/dist`
+- one Durable Object binding: `TRANSFER_OBJECT`
+- the initial Durable Object migration
+
+## API
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/{id}` | `PUT` / `POST` | Send data |
+| `/{id}` | `GET` | Receive data |
+| `/api/session` | `POST` | Create a 6-digit UI session |
+| `/api/session/{key}` | `GET` | Read session status |
+| `/status` | `GET` | Health and backend metadata |
+
+`?n=` multi-receiver transfers from upstream `piping-server` are not supported in this Worker backend. Use one sender and one receiver per path.
 
 ## Project Structure
 
 ```
 shuttle-piping/
-├── Dockerfile               # Container build for local K8s deployment
-├── deploy/
-│   ├── argocd/application.yaml # Argo CD Application
-│   └── k8s/                # K8s manifests for GitOps sync
-├── src/main.rs              # Server (handlers, transfer manager, tests)
-├── Cargo.toml               # Dependencies
-├── README.md                # English documentation
-├── README_CN.md             # Chinese documentation
-├── ZERO_COPY_ARCHITECTURE.md # Architecture deep-dive
-├── test_examples.sh         # Example test scripts
-├── test_transfer.sh         # Transfer test script
-└── LICENSE                  # MIT License
+├── worker/src/index.ts      # Cloudflare Worker and Durable Object backend
+├── web/                     # React/Vite frontend
+├── wrangler.toml            # Cloudflare Worker configuration
+├── package.json             # Worker build/deploy scripts
+├── test_examples.sh         # Manual transfer examples
+├── test_transfer.sh         # File transfer smoke test
+└── LICENSE
 ```
 
-## API
+## Legacy Rust Backend
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/{id}` | PUT | Send data (sender) |
-| `/{id}` | GET | Receive data (receiver) |
-| `/status` | GET | Service health and active transfers |
-
-## License
-
-MIT — see [LICENSE](LICENSE)
+The previous Rust/Axum backend is still present under `src/main.rs` for reference during the migration branch. The Cloudflare Worker path is now the primary deployment target on this branch.
 
 ## Acknowledgments
 
-- [Shuttle](https://shuttle.dev) — Rust cloud platform
-- [Axum](https://github.com/tokio-rs/axum) — Web framework
-- [Tokio](https://tokio.rs) — Async runtime
+- [piping-server](https://github.com/nwtgck/piping-server) — original HTTP streaming transfer behavior
+- [Cloudflare Workers](https://workers.cloudflare.com/) — Worker runtime
+- [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/) — per-transfer rendezvous coordination

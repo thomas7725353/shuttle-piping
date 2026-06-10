@@ -1,6 +1,10 @@
 /target
 /dist
 Cargo.lock
+node_modules/
+.wrangler/
+.dev.vars
+docs/superpowers/plans/
 .DS_Store
 *.swp
 *.swo
