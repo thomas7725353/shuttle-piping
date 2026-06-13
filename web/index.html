@@ -3,9 +3,145 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shuttle Piping</title>
+    <title>Shuttle Piping | Accountless Text and File Transfer</title>
+    <meta
+      name="description"
+      content="Shuttle Piping is an accountless Cloudflare Workers rendezvous transfer tool for text, code snippets, logs, and small files. Use a 6-digit key, QR link, or curl."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="application-name" content="Shuttle Piping" />
+    <meta name="theme-color" content="#e14f32" />
+    <link rel="canonical" href="https://p2p.gorustai.com/" />
+    <link rel="alternate" type="text/plain" href="https://p2p.gorustai.com/llms.txt" title="LLMs guide" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://p2p.gorustai.com/" />
+    <meta property="og:site_name" content="Shuttle Piping" />
+    <meta property="og:title" content="Shuttle Piping | Accountless Text and File Transfer" />
+    <meta
+      property="og:description"
+      content="Move text and small files between devices with a short key, QR code, browser UI, or curl."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Shuttle Piping | Accountless Text and File Transfer" />
+    <meta
+      name="twitter:description"
+      content="A lightweight web and curl-friendly tool for temporary text and small file transfers."
+    />
+    <style>
+      .static-summary {
+        max-width: 760px;
+        margin: 32px auto;
+        padding: 24px;
+        font-family: Avenir Next, Avenir, system-ui, sans-serif;
+        color: #1f2722;
+      }
+
+      .static-summary pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Shuttle Piping",
+            "url": "https://p2p.gorustai.com/",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web",
+            "description": "Accountless Cloudflare Workers rendezvous transfer for text, code snippets, logs, and small files with browser, QR code, and curl workflows.",
+            "softwareHelp": "https://github.com/thomas7725353/shuttle-piping",
+            "sourceCode": "https://github.com/thomas7725353/shuttle-piping",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Send text between browser, phone, container, and terminal",
+              "Transfer small files with a 6-digit key",
+              "Share receive links and QR codes",
+              "Use curl PUT and GET from terminals",
+              "Cloudflare Workers and Durable Objects rendezvous backend"
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is Shuttle Piping true peer-to-peer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Shuttle Piping provides a P2P-style handoff workflow, but data is relayed through a Cloudflare Worker and Durable Object rendezvous backend instead of direct WebRTC browser-to-browser connectivity."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I use Shuttle Piping with curl?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Send data with curl PUT or POST to a unique path, then receive it with curl GET from the same path."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What can I transfer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Shuttle Piping is intended for text, code snippets, logs, configuration content, and small files within Cloudflare request upload limits."
+                }
+              }
+            ]
+          },
+          {
+            "@type": "HowTo",
+            "name": "Send text or a small file with Shuttle Piping",
+            "step": [
+              {
+                "@type": "HowToStep",
+                "name": "Paste text or choose files",
+                "text": "Open Shuttle Piping and paste text or choose one or more small files."
+              },
+              {
+                "@type": "HowToStep",
+                "name": "Create a transfer",
+                "text": "Create a short-lived transfer key, link, or QR code."
+              },
+              {
+                "@type": "HowToStep",
+                "name": "Receive on another device",
+                "text": "Enter the 6-digit key, open the shared link, scan the QR code, or use curl GET with the same transfer path."
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
+    <noscript>
+      <main class="static-summary">
+        <h1>Shuttle Piping</h1>
+        <p>
+          Shuttle Piping is an accountless Cloudflare Workers rendezvous transfer tool for
+          text, code snippets, logs, configuration content, and small files.
+        </p>
+        <p>
+          Use the browser UI with a 6-digit key, receive link, or QR code, or use curl from a
+          terminal with the same unique transfer path.
+        </p>
+        <pre>echo "hello" | curl -T - https://p2p.gorustai.com/YOUR-TRANSFER-NAME
+curl https://p2p.gorustai.com/YOUR-TRANSFER-NAME</pre>
+        <p>
+          The source code is available at
+          <a href="https://github.com/thomas7725353/shuttle-piping">github.com/thomas7725353/shuttle-piping</a>.
+        </p>
+      </main>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -162,6 +162,8 @@ function isStaticAppPath(pathname: string): boolean {
     pathname.startsWith("/app/") ||
     pathname === "/favicon.ico" ||
     pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/llms.txt" ||
     pathname.startsWith("/assets/")
   );
 }
@@ -357,18 +359,28 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return optionsResponse();
   }
 
-  if (request.method === "GET" && isStaticAppPath(url.pathname)) {
+  if ((request.method === "GET" || request.method === "HEAD") && isStaticAppPath(url.pathname)) {
     return serveAsset(request, env);
   }
 
-  if (request.method === "GET" && url.pathname === "/status") {
-    return jsonResponse({
+  if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/status") {
+    const statusPayload = {
       status: "healthy",
       version: "4.0.0-cf-worker",
       backend: "cloudflare-worker-durable-object",
       max_request_body: "Cloudflare account upload limit applies",
       session_ttl: "10 minutes"
-    });
+    };
+
+    if (request.method === "HEAD") {
+      return new Response(null, {
+        headers: {
+          "content-type": "application/json; charset=utf-8"
+        }
+      });
+    }
+
+    return jsonResponse(statusPayload);
   }
 
   if (request.method === "POST" && url.pathname === "/api/session") {
@@ -387,7 +399,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   return textResponse(`Unsupported method: ${request.method}\n`, {
     status: 405,
     headers: {
-      allow: "GET, HEAD, POST, PUT, OPTIONS"
+      allow: "GET, POST, PUT, OPTIONS"
     }
   });
 }

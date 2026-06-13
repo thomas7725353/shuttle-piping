@@ -1,19 +1,27 @@
 :root {
-  --bg: #f5f6f7;
+  --bg: #f4f1ea;
   --card: #ffffff;
-  --panel: #f1f3f5;
-  --panel-strong: #e8ebef;
-  --text: #151719;
-  --muted: #737a82;
-  --line: #d9dee5;
-  --accent: #df4358;
-  --accent-strong: #c93449;
-  --ok: #1f7a4d;
-  --err: #bf2d48;
+  --panel: #eef3ee;
+  --panel-strong: #dce8dd;
+  --ink: #161b18;
+  --text: #1f2722;
+  --muted: #667168;
+  --line: #d7ded5;
+  --accent: #e14f32;
+  --accent-strong: #bf3a24;
+  --forest: #1d4d3c;
+  --gold: #c79d31;
+  --ok: #1d7047;
+  --err: #b92d3e;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
 }
 
 body {
@@ -21,15 +29,20 @@ body {
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(circle at 8% 0%, #ffffff 0, transparent 34%),
-    linear-gradient(135deg, #f7f8f9 0%, #e8ebef 100%);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    linear-gradient(90deg, rgba(22, 27, 24, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(22, 27, 24, 0.035) 1px, transparent 1px),
+    linear-gradient(135deg, #fbf7ee 0%, #edf3ee 52%, #f7f2e6 100%),
+    linear-gradient(90deg, rgba(29, 77, 60, 0.08), rgba(225, 79, 50, 0.08));
+  background-size: 28px 28px, 28px 28px, auto, auto;
+  font-family: Avenir Next, Avenir, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 button,
 input,
 textarea {
   font: inherit;
+  min-width: 0;
+  max-width: 100%;
 }
 
 button {
@@ -42,30 +55,40 @@ button:active:not(:disabled) {
 
 .page-bg {
   min-height: 100vh;
-  padding: 32px;
+  padding: 28px;
+  overflow-x: hidden;
 }
 
 .page-shell {
   width: min(1180px, 100%);
   margin: 0 auto;
   display: grid;
-  gap: 18px;
+  gap: 20px;
+  min-width: 0;
 }
 
 .app-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
-  min-height: 56px;
+  min-height: 60px;
+}
+
+.brand-block {
+  display: grid;
+  gap: 7px;
+  max-width: 690px;
+  min-width: 0;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 38px;
   line-height: 1.1;
-  font-weight: 760;
+  font-weight: 850;
   letter-spacing: 0;
+  color: var(--ink);
 }
 
 .app-header p,
@@ -74,21 +97,113 @@ p {
   margin: 0;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 560;
+  font-weight: 580;
+  overflow-wrap: anywhere;
+}
+
+.eyebrow {
+  color: var(--forest);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(22, 27, 24, 0.14);
+  border-radius: 8px;
+  background: #161b18;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 780;
+  box-shadow: 0 10px 24px rgba(22, 27, 24, 0.16);
+  max-width: 100%;
+}
+
+.github-link svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 
 .health-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
+  min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #4c535b;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--forest);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
+}
+
+.intro-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  padding: 22px;
+  border: 1px solid rgba(29, 77, 60, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.56)),
+    linear-gradient(90deg, rgba(29, 77, 60, 0.08), rgba(199, 157, 49, 0.11));
+  box-shadow: 0 18px 48px rgba(36, 42, 50, 0.1);
+  overflow: hidden;
+}
+
+.intro-band > *,
+.workspace > *,
+.card,
+.seo-content > * {
+  min-width: 0;
+}
+
+.intro-band h2 {
+  max-width: 850px;
+  margin-top: 8px;
+  font-size: 34px;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.intro-metrics {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.intro-metrics span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(29, 77, 60, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .workspace {
@@ -105,9 +220,9 @@ p {
 
 .card {
   background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(217, 222, 229, 0.9);
+  border: 1px solid rgba(215, 222, 213, 0.94);
   border-radius: 8px;
-  box-shadow: 0 18px 44px rgba(36, 42, 50, 0.12);
+  box-shadow: 0 20px 48px rgba(36, 42, 50, 0.12);
   padding: 22px;
 }
 
@@ -128,13 +243,15 @@ h3 {
 h2 {
   font-size: 30px;
   line-height: 1.05;
-  font-weight: 760;
+  font-weight: 830;
+  color: var(--ink);
 }
 
 h3 {
   font-size: 18px;
   line-height: 1.15;
-  font-weight: 720;
+  font-weight: 800;
+  color: var(--ink);
 }
 
 .composer,
@@ -175,9 +292,9 @@ h3 {
 .content-tabs .active,
 .mode-tabs .active {
   background: var(--card);
-  border-color: rgba(217, 222, 229, 0.9);
+  border-color: rgba(29, 77, 60, 0.18);
   color: var(--text);
-  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
 }
 
 .mode-tabs .disabled {
@@ -187,15 +304,17 @@ h3 {
 
 .text-send {
   display: grid;
+  min-width: 0;
 }
 
 .text-composer {
   width: 100%;
+  max-width: 100%;
   min-height: 300px;
   resize: vertical;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfd;
+  background: #fffefb;
   padding: 16px;
   color: #202327;
   font-size: 16px;
@@ -205,8 +324,8 @@ h3 {
 .text-composer:focus,
 .receive-input-row input:focus,
 .link-box input:focus {
-  outline: 3px solid rgba(223, 67, 88, 0.16);
-  border-color: rgba(223, 67, 88, 0.72);
+  outline: 3px solid rgba(225, 79, 50, 0.18);
+  border-color: rgba(225, 79, 50, 0.72);
 }
 
 .file-drop {
@@ -217,7 +336,7 @@ h3 {
   gap: 10px;
   border: 1px dashed #c6ccd4;
   border-radius: 8px;
-  background: #fbfcfd;
+  background: #fffefb;
 }
 
 .file-pick-btn,
@@ -255,7 +374,7 @@ h3 {
   border-radius: 8px;
   max-height: 220px;
   overflow: auto;
-  background: #fbfcfd;
+  background: #fffefb;
 }
 
 .file-row {
@@ -338,7 +457,7 @@ h3 {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fbfcfd;
+  background: #fffefb;
   padding: 12px 0;
   text-align: center;
   font-size: 30px;
@@ -362,7 +481,7 @@ h3 {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fbfcfd;
+  background: #fffefb;
   padding: 10px 12px;
   color: #333940;
   font-size: 13px;
@@ -383,7 +502,7 @@ h3 {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfd;
+  background: #fffefb;
   padding: 0 14px;
   color: #202327;
   font-size: 24px;
@@ -446,7 +565,7 @@ h3 {
   overflow-wrap: anywhere;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfcfd;
+  background: #fffefb;
   color: #202327;
   padding: 14px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -482,6 +601,136 @@ h3 {
   display: none;
 }
 
+.seo-content,
+.howto-grid,
+.faq-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.seo-content {
+  grid-template-columns: 1.2fr 0.85fr 0.95fr;
+  padding-bottom: 10px;
+}
+
+.faq-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.howto-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.seo-content article,
+.howto-grid article,
+.faq-grid article {
+  border: 1px solid rgba(29, 77, 60, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 18px;
+}
+
+.howto-grid article {
+  display: grid;
+  gap: 8px;
+}
+
+.howto-grid span {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.section-head {
+  display: grid;
+  gap: 7px;
+}
+
+.section-head h2 {
+  font-size: 26px;
+  line-height: 1.12;
+}
+
+.seo-content h2 {
+  font-size: 22px;
+  line-height: 1.16;
+  margin-bottom: 10px;
+}
+
+.seo-content h3,
+.howto-grid h3,
+.faq-grid h3 {
+  margin-bottom: 10px;
+}
+
+.seo-content p,
+.seo-content li,
+.howto-grid p,
+.faq-grid p {
+  color: #5f6d63;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 580;
+}
+
+.howto-section,
+.faq-section {
+  display: grid;
+  gap: 14px;
+}
+
+.curl-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: center;
+  border: 1px solid rgba(22, 27, 24, 0.12);
+  border-radius: 8px;
+  background: #161b18;
+  color: #ffffff;
+  padding: 20px;
+}
+
+.curl-section h2 {
+  color: #ffffff;
+  font-size: 26px;
+  line-height: 1.12;
+  margin: 7px 0 10px;
+}
+
+.curl-section p {
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.55;
+}
+
+.curl-section .eyebrow {
+  color: #f6c95a;
+}
+
+.curl-section pre {
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff7df;
+  padding: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.seo-content ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.seo-content li + li {
+  margin-top: 7px;
+}
+
 @media (max-width: 920px) {
   .page-bg {
     padding: 18px;
@@ -489,6 +738,18 @@ h3 {
 
   .workspace {
     grid-template-columns: 1fr;
+  }
+
+  .intro-band,
+  .seo-content,
+  .howto-grid,
+  .faq-grid,
+  .curl-section {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-metrics {
+    justify-content: flex-start;
   }
 
   .card {
@@ -509,10 +770,25 @@ h3 {
   .app-header {
     align-items: flex-start;
     flex-direction: column;
+    min-width: 0;
   }
 
   .app-header h1 {
-    font-size: 24px;
+    font-size: 30px;
+  }
+
+  .header-actions,
+  .github-link,
+  .health-pill {
+    width: 100%;
+  }
+
+  .intro-band {
+    padding: 18px;
+  }
+
+  .intro-band h2 {
+    font-size: 25px;
   }
 
   h2 {

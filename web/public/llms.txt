@@ -1,0 +1,36 @@
+# Shuttle Piping
+
+Shuttle Piping is an accountless Cloudflare Workers rendezvous transfer web tool at https://p2p.gorustai.com/.
+
+It helps users move short notes, code snippets, terminal output, configuration text, and small files between phones, browsers, containers, and terminals.
+
+Core workflows:
+
+- Browser text sharing: paste text, create a 6-digit key, open the key or link on another device, and read or copy the text inline.
+- Browser file sharing: choose one or more files, create a transfer key, scan a QR code or open a link, and download on the receiver.
+- Terminal transfer: use curl with PUT or POST to send data to a unique path, then GET the same path from the receiving device.
+- Direct or link mode: direct mode uses a short key; link mode creates a receive link and QR code.
+
+Important properties:
+
+- Runs on Cloudflare Workers with Durable Objects for rendezvous coordination.
+- Provides a P2P-style handoff workflow, but traffic is relayed through Cloudflare Workers instead of direct WebRTC browser-to-browser connectivity.
+- No account is required for the public tool.
+- Transfers are intended for text and small files within Cloudflare request upload limits.
+- 6-digit browser sessions expire after 10 minutes.
+- The project is open source at https://github.com/thomas7725353/shuttle-piping.
+
+Useful URLs:
+
+- App: https://p2p.gorustai.com/app
+- Health check: https://p2p.gorustai.com/status
+- Source code: https://github.com/thomas7725353/shuttle-piping
+
+Example curl usage:
+
+```bash
+echo "Hello from Shuttle Piping" | curl -T - https://p2p.gorustai.com/YOUR-TRANSFER-NAME
+curl https://p2p.gorustai.com/YOUR-TRANSFER-NAME
+```
+
+Both sides must use the same unique transfer path. Replace `YOUR-TRANSFER-NAME` with a name that is hard for other users to guess.

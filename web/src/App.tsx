@@ -49,6 +49,7 @@ interface UploadPayload {
 const TAR_BLOCK_SIZE = 512;
 const TEXT_CONTENT_TYPE = "text/plain; charset=utf-8";
 const TEXT_FILENAME = "message.txt";
+const GITHUB_URL = "https://github.com/thomas7725353/shuttle-piping";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -531,12 +532,37 @@ function App() {
     <div className="page-bg">
       <div className="page-shell">
         <header className="app-header">
-          <div>
+          <div className="brand-block">
+            <span className="eyebrow">Accountless transfer tool</span>
             <h1>Shuttle Piping</h1>
-            <p>Stream text and files</p>
+            <p>Send text, code snippets, and small files between browser, phone, container, and terminal.</p>
           </div>
-          <span className="health-pill">Ready</span>
+          <div className="header-actions">
+            <a className="github-link" href={GITHUB_URL} target="_blank" rel="noreferrer">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.86.09-.67.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.99c.85 0 1.7.12 2.5.35 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.94.68 1.9 0 1.38-.01 2.49-.01 2.83 0 .27.18.6.69.49A10.15 10.15 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z"
+                />
+              </svg>
+              Star on GitHub
+            </a>
+            <span className="health-pill">Ready</span>
+          </div>
         </header>
+
+        <section className="intro-band" aria-labelledby="intro-title">
+          <div>
+            <p className="eyebrow">No login, short-lived sessions, curl-friendly API</p>
+            <h2 id="intro-title">Move a note, log, config, or small file from one device to another without setting up an account.</h2>
+          </div>
+          <div className="intro-metrics" aria-label="Tool highlights">
+            <span>6-digit key</span>
+            <span>QR link</span>
+            <span>curl PUT/GET</span>
+            <span>Cloudflare relay</span>
+          </div>
+        </section>
 
         <main className="workspace">
           <div className="send-column">
@@ -545,7 +571,7 @@ function App() {
             <div className="card-head">
               <div>
                 <h2>Send</h2>
-                <p>{sendContentMode === "text" ? formatSize(textSize) : `${files.length} files · ${formatSize(totalSize)}`}</p>
+                <p>{sendContentMode === "text" ? `Text message · ${formatSize(textSize)}` : `${files.length} files · ${formatSize(totalSize)}`}</p>
               </div>
               {(textValue || files.length > 0) && (
                 <button className="subtle-btn" type="button" onClick={resetSend}>
@@ -590,7 +616,7 @@ function App() {
                       setSendError("");
                       setSendMessage("");
                     }}
-                    placeholder="Paste text"
+                    placeholder="Paste text, JSON, logs, shell output, or a config snippet"
                   />
                 </div>
               ) : files.length === 0 ? (
@@ -646,7 +672,7 @@ function App() {
               </div>
 
               <button className="send-btn" type="button" onClick={startSend} disabled={isSending}>
-                {isSending ? "Sending..." : "Send"}
+                {isSending ? "Sending..." : "Create transfer"}
               </button>
 
               {sendError && <p className="err">{sendError}</p>}
@@ -662,7 +688,7 @@ function App() {
                 ←
               </button>
               <div>
-                <h2>Waiting...</h2>
+              <h2>Waiting...</h2>
                 <p>
                   Enter the 6-digit key on the receiving device
                   <br />
@@ -701,7 +727,7 @@ function App() {
           <div className="card-head">
             <div>
               <h2>Receive</h2>
-              <p>{receivedText ? receivedTextFilename || TEXT_FILENAME : "Enter key"}</p>
+              <p>{receivedText ? receivedTextFilename || TEXT_FILENAME : "Enter a 6-digit key or open a shared link"}</p>
             </div>
           </div>
           <div className="receive-input-row">
@@ -714,9 +740,15 @@ function App() {
               onChange={(event) => setReceiveKey(event.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="000000"
             />
-            <button type="button" onClick={() => void startReceive()} disabled={isReceiving}>
-              {isReceiving ? <span className="spinner" aria-label="Downloading" /> : "⇩"}
-            </button>
+              <button
+                type="button"
+                onClick={() => void startReceive()}
+                disabled={isReceiving}
+                aria-label="Receive transfer"
+                title="Receive transfer"
+              >
+                {isReceiving ? <span className="spinner" aria-label="Downloading" /> : "⇩"}
+              </button>
           </div>
           {isReceiving && <p className="status-line">Downloading...</p>}
           {receiveError && <p className="err">{receiveError}</p>}
@@ -755,6 +787,109 @@ function App() {
           className="hidden"
           onChange={onSelectFiles}
         />
+
+        <section className="seo-content" aria-label="About Shuttle Piping">
+          <article>
+            <h2>Temporary text and file transfer for everyday handoff</h2>
+            <p>
+              Shuttle Piping is a lightweight Cloudflare Workers rendezvous tool for moving text,
+              code snippets, terminal output, configuration content, and small files across devices.
+              It fits quick browser-to-browser sharing, phone-to-laptop handoff, and container-to-host
+              curl transfer.
+            </p>
+          </article>
+          <article>
+            <h3>Common use cases</h3>
+            <ul>
+              <li>Send a code snippet, JSON payload, shell output, or config file to another screen.</li>
+              <li>Move a small file between phone, laptop, browser, container, and terminal.</li>
+              <li>Share with a 6-digit key, receive link, QR code, or curl-compatible path.</li>
+              <li>Use short-lived rendezvous sessions without creating an account.</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Searches this tool answers</h3>
+            <p>
+              Temporary text sharing, QR file transfer, curl file sharing, browser file transfer,
+              accountless file transfer, send logs between devices, and P2P-style file handoff.
+            </p>
+          </article>
+        </section>
+
+        <section className="howto-section" aria-label="How to use Shuttle Piping">
+          <div className="section-head">
+            <p className="eyebrow">How it works</p>
+            <h2>Send text or a small file in three short steps</h2>
+          </div>
+          <div className="howto-grid">
+            <article>
+              <span>01</span>
+              <h3>Paste or choose</h3>
+              <p>Paste text, JSON, logs, shell output, a config snippet, or choose a small file.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Create a handoff</h3>
+              <p>Generate a short-lived key, receive link, or QR code for the other device.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Receive anywhere</h3>
+              <p>Open the link, scan the QR code, enter the key, or use curl from a terminal.</p>
+            </article>
+          </div>
+        </section>
+
+        <section className="curl-section" aria-label="Curl file transfer example">
+          <div>
+            <p className="eyebrow">Terminal workflow</p>
+            <h2>Curl-friendly file and text transfer</h2>
+            <p>
+              Use the same unique path on both sides. This keeps terminal, SSH, Docker, and server
+              workflows simple when a browser upload form is not available.
+            </p>
+          </div>
+          <pre>{`echo "hello" | curl -T - https://p2p.gorustai.com/YOUR-TRANSFER-NAME
+curl https://p2p.gorustai.com/YOUR-TRANSFER-NAME`}</pre>
+        </section>
+
+        <section className="faq-section" aria-label="Shuttle Piping FAQ">
+          <div className="section-head">
+            <p className="eyebrow">FAQ</p>
+            <h2>Fast answers for searchers and AI crawlers</h2>
+          </div>
+          <div className="faq-grid">
+            <article>
+              <h3>Is Shuttle Piping true peer-to-peer?</h3>
+              <p>
+                It provides a P2P-style handoff workflow, but transfers are relayed through
+                Cloudflare Workers and Durable Objects rather than direct WebRTC browser-to-browser
+                connectivity.
+              </p>
+            </article>
+            <article>
+              <h3>Can I use it with curl?</h3>
+              <p>
+                Yes. Send with curl PUT or POST to a unique path, then receive with curl GET from
+                the same path. This is useful for terminals, containers, and servers.
+              </p>
+            </article>
+            <article>
+              <h3>What should I transfer?</h3>
+              <p>
+                Use it for text, logs, code snippets, configuration content, and small files within
+                Cloudflare request upload limits.
+              </p>
+            </article>
+            <article>
+              <h3>Does it need an account?</h3>
+              <p>
+                No account is required. Browser sessions use short-lived keys, links, or QR codes,
+                and terminal transfers use a shared unique path.
+              </p>
+            </article>
+          </div>
+        </section>
       </div>
     </div>
   );
